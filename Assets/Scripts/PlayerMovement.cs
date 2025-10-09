@@ -1,6 +1,7 @@
+using Unity.Netcode;
 using UnityEngine;
 
-public class PlayerMovement : MonoBehaviour
+public class PlayerMovement : NetworkBehaviour
 {
     [SerializeField] float movementSpeed = 1f;
     [SerializeField] float rotationSpeed = 720f;
@@ -15,6 +16,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
+        if (!IsOwner || !IsSpawned)
+            return;
+
         Vector2 moveInput = inputActions.Player.Move.ReadValue<Vector2>();
         Move(moveInput);
     }
@@ -25,9 +29,30 @@ public class PlayerMovement : MonoBehaviour
             return;
 
         Debug.Log("Movement: " + input);
-        Vector3 movement = new Vector3(input.x, 0, input.y) * movementSpeed * Time.deltaTime;
+        Vector3 worldDirection = GetCameraBasedDirection(input);
+        Debug.Log("World direction: " + worldDirection);
+        Vector3 movement = worldDirection * movementSpeed * Time.deltaTime;
         Quaternion toRotation = Quaternion.LookRotation(movement);
         transform.rotation = Quaternion.RotateTowards(transform.rotation, toRotation, rotationSpeed * Time.deltaTime);
         transform.position += movement;
+    }
+
+    private Vector3 GetCameraBasedDirection(Vector2 inputDirection)
+    {
+        Transform camera = Camera.main.transform;
+
+        Vector3 right = camera.right;
+        right.y = 0;
+        right.Normalize();
+
+        Vector3 forward = camera.forward;
+        forward.y = 0;
+        forward.Normalize();
+
+        right *= inputDirection.x;
+        forward *= inputDirection.y;
+
+        Vector3 direction = right + forward;
+        return direction.normalized;
     }
 }
