@@ -281,45 +281,33 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 2624303457828816203, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
-      propertyPath: m_Constraints
-      value: 80
+    - target: {fileID: 3705404259323234664, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
+      propertyPath: jumpValue
+      value: 15
       objectReference: {fileID: 0}
-    - target: {fileID: 2624303457828816203, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
-      propertyPath: m_ImplicitCom
+    - target: {fileID: 3932278162818654855, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 3625326759
+      objectReference: {fileID: 0}
+    - target: {fileID: 4327870984539919959, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
+      propertyPath: m_Height
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 3705404259323234664, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
-      propertyPath: runLocal
-      value: 1
+    - target: {fileID: 4327870984539919959, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
+      propertyPath: m_Center.y
+      value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 3705404259323234664, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
-      propertyPath: groundedSize.x
-      value: 0.5
+    - target: {fileID: 4327870984539919959, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
+      propertyPath: m_SkinWidth
+      value: 0.0001
       objectReference: {fileID: 0}
-    - target: {fileID: 3705404259323234664, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
-      propertyPath: groundedSize.y
-      value: 0.1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3705404259323234664, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
-      propertyPath: groundedSize.z
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 3705404259323234664, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
-      propertyPath: groundedOffset.y
-      value: -0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 3705404259323234664, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
-      propertyPath: groundedLayers.m_Bits
-      value: 55
+    - target: {fileID: 4327870984539919959, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
+      propertyPath: m_MinMoveDistance
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6025696216642873420, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
       propertyPath: m_Name
       value: LocalPlayer
-      objectReference: {fileID: 0}
-    - target: {fileID: 6025696216642873420, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
-      propertyPath: m_Layer
-      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 7237500878150469047, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
       propertyPath: m_LocalPosition.x
@@ -364,10 +352,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 6025696216642873420, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
-      insertIndex: 5
-      addedObject: {fileID: 1588639615}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
 --- !u!1 &961739749
 GameObject:
@@ -601,36 +586,6 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 351785187}
   m_SourcePrefab: {fileID: 100100000, guid: 1fe8fe2a308e2e1459733636e61295cd, type: 3}
---- !u!1 &1588639606 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6025696216642873420, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
-  m_PrefabInstance: {fileID: 642817214}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1588639615
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1588639606}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 851802260
-  InScenePlacedSourceGlobalObjectIdHash: 0
-  DeferredDespawnTick: 0
-  Ownership: 1
-  AlwaysReplicateAsRoot: 0
-  SynchronizeTransform: 1
-  ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
-  SpawnWithObservers: 1
-  DontDestroyWithOwner: 0
-  AutoObjectParentSync: 1
-  SyncOwnerTransformWhenParented: 1
-  AllowOwnerToParent: 0
 --- !u!1001 &2078270373
 PrefabInstance:
   m_ObjectHideFlags: 0

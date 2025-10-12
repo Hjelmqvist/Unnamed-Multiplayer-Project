@@ -9,20 +9,25 @@ public class HeroController : NetworkBehaviour
     [SerializeField] float movementSpeed = 1f;
     [SerializeField] float rotationSpeed = 720f;
     [SerializeField] float jumpHeight = 1f;
-
-    [Header("Grounded check"), Space()]
-    [SerializeField] Vector3 groundedSize;
-    [SerializeField] Vector3 groundedOffset;
-    [SerializeField] LayerMask groundedLayers;
+    [SerializeField] float airMovementMultiplier = 0.5f;
 
     // References
-    Rigidbody rb;
+    CharacterController characterController;
     PlayerInputActions inputActions;
+
+    Vector3 movementVelocity = Vector3.zero;
+    Vector3 lookDirection = Vector3.zero;
+    bool hasJumped = false;
+    bool releasedJump = false;
+
+    const float Gravity = -9.81f;
 
     private void Awake()
     {
-        rb ??= GetComponent<Rigidbody>();
+        characterController ??= GetComponent<CharacterController>();
         inputActions = new PlayerInputActions();
+
+        lookDirection = transform.forward;
     }
 
     private void OnEnable()
@@ -40,6 +45,9 @@ public class HeroController : NetworkBehaviour
         if (!runLocal && (!IsOwner || !IsSpawned))
             return;
         Move();
+        Rotate();
+        Jump();
+        ApplyForces();
     }
 
     private void Move()
@@ -47,20 +55,69 @@ public class HeroController : NetworkBehaviour
         // Read input
         Vector2 input = inputActions.Player.Move.ReadValue<Vector2>();
         if (input == Vector2.zero)
+        {
+            if (characterController.isGrounded)
+            {
+                movementVelocity.x = 0;
+                movementVelocity.z = 0;
+            }
             return;
+        }
 
         // Convert input
         Vector3 worldDirection = GetCameraBasedDirection(input);
+        bool grounded = characterController.isGrounded;
 
-        // Update position
-        Vector3 movement = worldDirection * movementSpeed * Time.deltaTime;
-        Vector3 newPosition = transform.position + movement;
-        rb.MovePosition(newPosition);
+        // Update movement
+        Vector3 movement = worldDirection * movementSpeed;
+        if (grounded)
+        {
+            movementVelocity.x = movement.x;
+            movementVelocity.z = movement.z;
+            lookDirection = movement;
+        }
+        else
+        {
+            // Move less while in the air.
+            movementVelocity.x = Mathf.Clamp(movementVelocity.x + movement.x * airMovementMultiplier * Time.deltaTime, -movementSpeed, movementSpeed);
+            movementVelocity.z = Mathf.Clamp(movementVelocity.z + movement.z * airMovementMultiplier * Time.deltaTime, -movementSpeed, movementSpeed);
+        }
+    }
 
-        // Update rotation
-        Quaternion toRotation = Quaternion.LookRotation(movement);
+    private void Rotate()
+    {
+        Quaternion toRotation = Quaternion.LookRotation(lookDirection);
         Quaternion newRotation = Quaternion.RotateTowards(transform.rotation, toRotation, rotationSpeed * Time.deltaTime);
-        rb.MoveRotation(newRotation);
+        transform.rotation = newRotation;
+    }
+
+    private void Jump()
+    {
+        bool grounded = characterController.isGrounded;
+        if (inputActions.Player.Jump.triggered)
+        {
+            if (grounded)
+            {
+                movementVelocity.y = Mathf.Sqrt(jumpHeight * Gravity * -2f);
+                hasJumped = true;
+                releasedJump = false;
+            }
+        }
+
+        // If the jump button is released fall earlier.
+        if (hasJumped)
+            releasedJump |= !inputActions.Player.Jump.inProgress;
+
+        if (releasedJump)
+            movementVelocity.y += Gravity * Time.deltaTime;
+    }
+
+    private void ApplyForces()
+    {
+        // Apply gravity
+        characterController.Move(movementVelocity * Time.deltaTime);
+        movementVelocity.y += Gravity * Time.deltaTime;
+        movementVelocity.y = Mathf.Clamp(movementVelocity.y, Gravity, jumpHeight);
     }
 
     /// <summary>
@@ -83,12 +140,5 @@ public class HeroController : NetworkBehaviour
 
         Vector3 direction = right + forward;
         return direction.normalized;
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        bool hit = Physics.CheckBox(transform.position + groundedOffset, groundedSize / 2, transform.rotation, groundedLayers);
-        Gizmos.color = hit ? Color.green : Color.red;
-        Gizmos.DrawWireCube(transform.position + groundedOffset, groundedSize);
     }
 }
