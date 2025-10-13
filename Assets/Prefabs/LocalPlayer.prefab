@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 3932278162818654855}
   - component: {fileID: 3705404259323234664}
   m_Layer: 6
-  m_Name: Player
+  m_Name: LocalPlayer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -110,11 +110,11 @@ CharacterController:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Height: 0.85
+  m_Height: 1
   m_Radius: 0.5
   m_SlopeLimit: 60
   m_StepOffset: 0.3
-  m_SkinWidth: 0.08
+  m_SkinWidth: 0.0001
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &3932278162818654855
@@ -129,7 +129,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 851802260
+  GlobalObjectIdHash: 3625326759
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -158,4 +158,7 @@ MonoBehaviour:
   runLocal: 1
   movementSpeed: 3
   rotationSpeed: 720
-  jumpValue: 1
+  jumpHeight: 5
+  airMovementMultiplier: 1
+  jumpReleasedFallSpeedMultiplier: 1.5
+  inAirMovementType: 0

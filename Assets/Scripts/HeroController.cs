@@ -8,15 +8,28 @@ public class HeroController : NetworkBehaviour
     [Header("Movement settings")]
     [SerializeField] float movementSpeed = 1f;
     [SerializeField] float rotationSpeed = 720f;
+
+    [Header("Jump settings"), Space()]
     [SerializeField] float jumpHeight = 1f;
-    [SerializeField] float airMovementMultiplier = 0.5f;
+    [SerializeField] float airMovementMultiplier = 1f;
+    [SerializeField] float jumpReleasedFallSpeedMultiplier = 1f;
+    [SerializeField] MovementType inAirMovementType; 
+
+    enum MovementType
+    {
+        Direct,  // Directly sets the movement velocity
+        Additive // Adds to the movement velocity.
+    }
 
     // References
     CharacterController characterController;
     PlayerInputActions inputActions;
 
+    // Movement
     Vector3 movementVelocity = Vector3.zero;
     Vector3 lookDirection = Vector3.zero;
+
+    // Jumping
     bool hasJumped = false;
     bool releasedJump = false;
 
@@ -44,6 +57,7 @@ public class HeroController : NetworkBehaviour
     {
         if (!runLocal && (!IsOwner || !IsSpawned))
             return;
+
         Move();
         Rotate();
         Jump();
@@ -70,20 +84,23 @@ public class HeroController : NetworkBehaviour
 
         // Update movement
         Vector3 movement = worldDirection * movementSpeed;
-        if (grounded)
+        if (grounded || inAirMovementType.Equals(MovementType.Direct))
         {
+            // Set movement directly when on the ground.
             movementVelocity.x = movement.x;
             movementVelocity.z = movement.z;
             lookDirection = movement;
         }
         else
         {
-            // Move less while in the air.
             movementVelocity.x = Mathf.Clamp(movementVelocity.x + movement.x * airMovementMultiplier * Time.deltaTime, -movementSpeed, movementSpeed);
             movementVelocity.z = Mathf.Clamp(movementVelocity.z + movement.z * airMovementMultiplier * Time.deltaTime, -movementSpeed, movementSpeed);
         }
     }
 
+    /// <summary>
+    /// Rotates the character based on the last look direction.
+    /// </summary>
     private void Rotate()
     {
         Quaternion toRotation = Quaternion.LookRotation(lookDirection);
@@ -91,6 +108,10 @@ public class HeroController : NetworkBehaviour
         transform.rotation = newRotation;
     }
 
+    /// <summary>
+    /// Checks if player is grounded and user pressed the jump button.
+    /// Handles forces to fall earlier if jump button is released.
+    /// </summary>
     private void Jump()
     {
         bool grounded = characterController.isGrounded;
@@ -104,20 +125,24 @@ public class HeroController : NetworkBehaviour
             }
         }
 
-        // If the jump button is released fall earlier.
+        // If the jump button is released start falling earlier.
         if (hasJumped)
             releasedJump |= !inputActions.Player.Jump.inProgress;
-
         if (releasedJump)
-            movementVelocity.y += Gravity * Time.deltaTime;
+            movementVelocity.y += Gravity * jumpReleasedFallSpeedMultiplier * Time.deltaTime;
     }
 
+    /// <summary>
+    /// Moves the character by the movement velocity.
+    /// </summary>
     private void ApplyForces()
     {
         // Apply gravity
-        characterController.Move(movementVelocity * Time.deltaTime);
         movementVelocity.y += Gravity * Time.deltaTime;
         movementVelocity.y = Mathf.Clamp(movementVelocity.y, Gravity, jumpHeight);
+
+        // Perform movement
+        characterController.Move(movementVelocity * Time.deltaTime);
     }
 
     /// <summary>

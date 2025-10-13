@@ -281,29 +281,9 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 3705404259323234664, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
-      propertyPath: jumpValue
-      value: 15
-      objectReference: {fileID: 0}
     - target: {fileID: 3932278162818654855, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 3625326759
-      objectReference: {fileID: 0}
-    - target: {fileID: 4327870984539919959, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
-      propertyPath: m_Height
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4327870984539919959, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
-      propertyPath: m_Center.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4327870984539919959, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
-      propertyPath: m_SkinWidth
-      value: 0.0001
-      objectReference: {fileID: 0}
-    - target: {fileID: 4327870984539919959, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
-      propertyPath: m_MinMoveDistance
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6025696216642873420, guid: 702489c052b44b941b575c3e47cbf7b9, type: 3}
       propertyPath: m_Name
