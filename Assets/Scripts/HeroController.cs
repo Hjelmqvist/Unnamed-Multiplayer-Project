@@ -1,6 +1,9 @@
 using Unity.Netcode;
 using UnityEngine;
 
+/// <summary>
+/// Reads input and moves the player character.
+/// </summary>
 public class HeroController : NetworkBehaviour
 {
     [SerializeField] bool runLocal;
@@ -22,7 +25,6 @@ public class HeroController : NetworkBehaviour
     }
 
     // References
-    CharacterController characterController;
     PlayerInputActions inputActions;
 
     // Movement
@@ -35,9 +37,11 @@ public class HeroController : NetworkBehaviour
 
     const float Gravity = -9.81f;
 
+    public CharacterController CharacterController { get; private set; }
+
     private void Awake()
     {
-        characterController ??= GetComponent<CharacterController>();
+        CharacterController ??= GetComponent<CharacterController>();
         inputActions = new PlayerInputActions();
 
         lookDirection = transform.forward;
@@ -70,7 +74,7 @@ public class HeroController : NetworkBehaviour
         Vector2 input = inputActions.Player.Move.ReadValue<Vector2>();
         if (input == Vector2.zero)
         {
-            if (characterController.isGrounded)
+            if (CharacterController.isGrounded)
             {
                 movementVelocity.x = 0;
                 movementVelocity.z = 0;
@@ -80,7 +84,7 @@ public class HeroController : NetworkBehaviour
 
         // Convert input
         Vector3 worldDirection = GetCameraBasedDirection(input);
-        bool grounded = characterController.isGrounded;
+        bool grounded = CharacterController.isGrounded;
 
         // Update movement
         Vector3 movement = worldDirection * movementSpeed;
@@ -114,7 +118,7 @@ public class HeroController : NetworkBehaviour
     /// </summary>
     private void Jump()
     {
-        bool grounded = characterController.isGrounded;
+        bool grounded = CharacterController.isGrounded;
         if (inputActions.Player.Jump.triggered)
         {
             if (grounded)
@@ -142,7 +146,7 @@ public class HeroController : NetworkBehaviour
         movementVelocity.y = Mathf.Clamp(movementVelocity.y, Gravity, jumpHeight);
 
         // Perform movement
-        characterController.Move(movementVelocity * Time.deltaTime);
+        CharacterController.Move(movementVelocity * Time.deltaTime);
     }
 
     /// <summary>
@@ -165,5 +169,10 @@ public class HeroController : NetworkBehaviour
 
         Vector3 direction = right + forward;
         return direction.normalized;
+    }
+
+    public void SetLookDirection(Vector3 direction)
+    {
+        lookDirection = direction;
     }
 }
