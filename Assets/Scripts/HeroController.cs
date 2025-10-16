@@ -15,8 +15,11 @@ public class HeroController : NetworkBehaviour
     [Header("Jump settings"), Space()]
     [SerializeField] float jumpHeight = 1f;
     [SerializeField] float airMovementMultiplier = 1f;
+    [SerializeField] MovementType inAirMovementType;
     [SerializeField] float jumpReleasedFallSpeedMultiplier = 1f;
-    [SerializeField] MovementType inAirMovementType; 
+    [Tooltip("Force applied from other sources. Example: get extra speed forward when jumping from a moving platform.")]
+    [SerializeField] float outsideForceReductionSpeed = 1f;
+    [SerializeField] float outsideForceMaxMagnitude = 3f;
 
     enum MovementType
     {
@@ -29,6 +32,7 @@ public class HeroController : NetworkBehaviour
 
     // Movement
     Vector3 movementVelocity = Vector3.zero;
+    Vector3 airOutsideForce = Vector3.zero;
     Vector3 lookDirection = Vector3.zero;
 
     // Jumping
@@ -36,6 +40,7 @@ public class HeroController : NetworkBehaviour
     bool releasedJump = false;
 
     const float Gravity = -9.81f;
+    const float SameDirectionDotThreshold = 0.5f;
 
     public CharacterController CharacterController { get; private set; }
 
@@ -78,28 +83,37 @@ public class HeroController : NetworkBehaviour
             {
                 movementVelocity.x = 0;
                 movementVelocity.z = 0;
+                airOutsideForce = Vector3.zero;
             }
             return;
         }
 
-        // Convert input
+        // Convert input to movement.
         Vector3 worldDirection = GetCameraBasedDirection(input);
-        bool grounded = CharacterController.isGrounded;
-
-        // Update movement
         Vector3 movement = worldDirection * movementSpeed;
-        if (grounded || inAirMovementType.Equals(MovementType.Direct))
-        {
-            // Set movement directly when on the ground.
-            movementVelocity.x = movement.x;
-            movementVelocity.z = movement.z;
-            lookDirection = movement;
-        }
+
+        // Handle movement differently depending on if the character is grounded and movetype.
+        if (CharacterController.isGrounded || inAirMovementType.Equals(MovementType.Direct))
+            HandleGroundMovement(movement);
         else
-        {
-            movementVelocity.x = Mathf.Clamp(movementVelocity.x + movement.x * airMovementMultiplier * Time.deltaTime, -movementSpeed, movementSpeed);
-            movementVelocity.z = Mathf.Clamp(movementVelocity.z + movement.z * airMovementMultiplier * Time.deltaTime, -movementSpeed, movementSpeed);
-        }
+            HandleAirMovement(movement);
+    }
+
+    private void HandleGroundMovement(Vector3 movement)
+    {
+        // Set movement directly when on the ground.
+        movementVelocity.x = movement.x;
+        movementVelocity.z = movement.z;
+        lookDirection = movement;
+
+        if (CharacterController.isGrounded)
+            airOutsideForce = Vector3.zero;
+    }
+
+    private void HandleAirMovement(Vector3 movement)
+    {
+        movementVelocity.x = movementVelocity.x + movement.x * airMovementMultiplier * Time.deltaTime;
+        movementVelocity.z = movementVelocity.z + movement.z * airMovementMultiplier * Time.deltaTime;
     }
 
     /// <summary>
@@ -146,7 +160,8 @@ public class HeroController : NetworkBehaviour
         movementVelocity.y = Mathf.Clamp(movementVelocity.y, Gravity, jumpHeight);
 
         // Perform movement
-        CharacterController.Move(movementVelocity * Time.deltaTime);
+        CharacterController.Move((movementVelocity + airOutsideForce) * Time.deltaTime);
+        airOutsideForce = Vector3.MoveTowards(airOutsideForce, Vector3.zero, outsideForceReductionSpeed * Time.deltaTime);
     }
 
     /// <summary>
@@ -171,8 +186,32 @@ public class HeroController : NetworkBehaviour
         return direction.normalized;
     }
 
+    /// <summary>
+    /// Adds force from outside sources.
+    /// Will only be applied while the character is in the air.
+    /// </summary>
+    public void AddAirForce(Vector3 force)
+    {
+        force.y = 0;
+        airOutsideForce += force;
+        airOutsideForce = Vector3.ClampMagnitude(airOutsideForce, outsideForceMaxMagnitude);
+    }
+
     public void SetLookDirection(Vector3 direction)
     {
+        direction.y = 0;
+        if (direction == Vector3.zero)
+        {
+            Debug.LogError("Tried to set unallowed direction: " + direction, this);
+            return;
+        }
         lookDirection = direction;
+    }
+
+    public bool LookingSameDirection(Vector3 direction)
+    {
+        Vector3 movement = movementVelocity;
+        movement.y = 0;
+        return SameDirectionDotThreshold < Vector3.Dot(movement.normalized, direction.normalized);
     }
 }

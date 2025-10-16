@@ -15,11 +15,15 @@ public class MovingGround : MonoBehaviour
         public Vector3 localPositionOffset;
     }
 
+    Vector3 previousPosition;
+    Vector3 positionDelta;
     Quaternion previousRotation;
     Quaternion rotationDelta;
 
     private void LateUpdate()
     {
+        positionDelta = transform.position - previousPosition;
+        previousPosition = transform.position;
         rotationDelta = transform.rotation * Quaternion.Inverse(previousRotation);
         previousRotation = transform.rotation;
 
@@ -67,6 +71,10 @@ public class MovingGround : MonoBehaviour
         {
             if (trackedCharacters[i].controller == controller)
             {
+                // If the character exits in the same direction this object is moving add some force to it.
+                if (controller.LookingSameDirection(positionDelta))
+                    controller.AddAirForce(positionDelta / Time.deltaTime);
+
                 trackedCharacters.RemoveAt(i);
                 break;
             }
