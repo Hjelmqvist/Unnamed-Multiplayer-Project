@@ -2,6 +2,10 @@ using System;
 using UnityEngine;
 using UnityEngine.Events;
 
+/// <summary>
+/// Functionality for characters using a Character Controller.
+/// </summary>
+[RequireComponent(typeof(CharacterController))]
 public class Character : MonoBehaviour
 {
     [Header("Movement settings")]
@@ -45,23 +49,41 @@ public class Character : MonoBehaviour
     // Slope detection
     private Vector3 lastHitNormal = Vector3.up;
 
+    // Moving platform handling
+    Transform currentPlatform;
+    bool leftPlatform;
+    Vector3 platformPosition;
+    Vector3 platformMovement;
+    Quaternion platformRotation;
+
     const float Gravity = -9.81f;
+    const float SameDirectionDotThreshold = 0.5f;
 
     private void Awake()
     {
-        CharacterController ??= GetComponent<CharacterController>();
+        CharacterController = GetComponent<CharacterController>();
         lookDirection = transform.forward;
     }
 
     private void Update()
     {
+        GetValues();
         Rotate();
+        HandlePlatformMovement();
         ApplyForces();
+    }
 
+    private void GetValues()
+    {
         if (CharacterController.isGrounded)
         {
             hasJumped = false;
             releasedJump = false;
+        }
+        else if (currentPlatform)
+        {
+            currentPlatform = null;
+            leftPlatform = true;
         }
     }
 
@@ -124,6 +146,43 @@ public class Character : MonoBehaviour
         }
     }
 
+    private void HandlePlatformMovement()
+    {
+        if (currentPlatform)
+        {
+            // Calculate movement delta from last frame
+            Vector3 newPlatformPosition = currentPlatform.position;
+            Quaternion newPlatformRotation = currentPlatform.rotation;
+            platformMovement = newPlatformPosition - platformPosition;
+            Quaternion platformRotationDelta = newPlatformRotation * Quaternion.Inverse(platformRotation);
+            platformPosition = newPlatformPosition;
+            platformRotation = newPlatformRotation;
+
+            // Rotate the character around the platform pivot
+            Vector3 pivot = currentPlatform.position;
+            Vector3 relativePos = transform.position - pivot;
+            relativePos = platformRotationDelta * relativePos;
+
+            // Combine rotation and translation
+            Vector3 newWorldPos = pivot + relativePos + platformMovement;
+            Vector3 totalDelta = newWorldPos - transform.position;
+            CharacterController.Move(totalDelta);
+
+            // Update character rotation        
+            SetLookDirection(transform.rotation * platformRotationDelta * Vector3.forward);
+        }
+        else if (leftPlatform)
+        {
+            leftPlatform = false;
+
+            // Give boost
+            Vector3 movement = movementVelocity;
+            movement.y = 0;
+            if (Vector3.Dot(movement.normalized, platformMovement.normalized) > SameDirectionDotThreshold)
+                AddForce(platformMovement / Time.deltaTime);
+        }
+    }
+
     /// <summary>
     /// Moves the character by the movement velocity.
     /// </summary>
@@ -163,6 +222,16 @@ public class Character : MonoBehaviour
             lastHitNormal = hit.normal;
         else if (CharacterController.isGrounded)
             lastHitNormal = hit.normal;
+
+        // Track moving platform.
+        if (hit.gameObject.GetComponent<Rigidbody>())
+        {
+            currentPlatform = hit.transform;
+            platformPosition = currentPlatform.position;
+            platformRotation = currentPlatform.rotation;
+        }
+        else
+            currentPlatform = null;
     }
 
     #region Public
@@ -187,9 +256,7 @@ public class Character : MonoBehaviour
         outsideForce = Vector3.zero;
         hasJumped = false;
         releasedJump = true;
-    }
-
-   
+    }  
 
     /// <summary>
     /// Checks if player is grounded and user pressed the jump button.
