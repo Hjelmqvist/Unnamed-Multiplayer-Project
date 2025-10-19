@@ -8,6 +8,7 @@ public class PlayerController : MonoBehaviour
 
     Vector2 movementInput = Vector2.zero;
     Vector3 movementDirection = Vector3.zero;
+    bool isSprinting = false;
     bool jumpTriggered = false;
     bool jumpInProgress = false;
 
@@ -25,7 +26,7 @@ public class PlayerController : MonoBehaviour
     {
         GetInputs();
 
-        character.Move(movementDirection);
+        character.Move(movementDirection, isSprinting);
 
         if (jumpTriggered)
             character.Jump();
@@ -38,6 +39,7 @@ public class PlayerController : MonoBehaviour
     {
         movementInput = inputActions.Player.Move.ReadValue<Vector2>();
         movementDirection = GetCameraBasedDirection(movementInput);
+        isSprinting = inputActions.Player.Sprint.inProgress;
         jumpTriggered = inputActions.Player.Jump.triggered;
         jumpInProgress = inputActions.Player.Jump.inProgress;
     }

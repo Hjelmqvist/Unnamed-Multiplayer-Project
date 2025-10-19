@@ -10,12 +10,12 @@ public class Character : MonoBehaviour
 {
     [Header("Movement settings")]
     [SerializeField] float movementSpeed = 1f;
+    [SerializeField] float sprintSpeed = 2f;
     [SerializeField] float rotationSpeed = 720f;
 
     [Header("Jump settings")]
     [SerializeField] float jumpHeight = 1f;
     [SerializeField] float airMovementMultiplier = 1f;
-    [SerializeField] MovementType inAirMovementType;
     [SerializeField] float jumpReleasedFallSpeedMultiplier = 1f;
 
     [Header("Outside forces")]
@@ -29,21 +29,12 @@ public class Character : MonoBehaviour
     [Header("Events")]
     public UnityEvent OnJump;
 
-    enum MovementType
-    {
-        Direct,  // Directly sets the movement velocity
-        Additive // Adds to the movement velocity.
-    }
-
-    public CharacterController CharacterController { get; private set; }
-
     // Movement
     private Vector3 movementVelocity = Vector3.zero;
     private Vector3 outsideForce = Vector3.zero;
     private Vector3 lookDirection = Vector3.zero;
 
     // Jumping
-    private bool hasJumped = false;
     private bool releasedJump = false;
 
     // Slope detection
@@ -58,6 +49,21 @@ public class Character : MonoBehaviour
 
     const float Gravity = -9.81f;
     const float SameDirectionDotThreshold = 0.5f;
+
+    public CharacterController CharacterController { get; private set; }
+
+    public bool IsJumping { get; private set; }
+
+    public bool IsMoving {
+        get 
+        {
+            Vector3 movement = movementVelocity;
+            movement.y = 0;
+            return movement.magnitude > 0;
+        }
+    }
+
+    public bool IsSprinting { get; private set; }
 
     private void Awake()
     {
@@ -75,9 +81,9 @@ public class Character : MonoBehaviour
 
     private void GetValues()
     {
-        if (CharacterController.isGrounded)
+        if (CharacterController.isGrounded && movementVelocity.y < 0)
         {
-            hasJumped = false;
+            IsJumping = false;
             releasedJump = false;
         }
         else if (currentPlatform)
@@ -87,8 +93,10 @@ public class Character : MonoBehaviour
         }
     }
 
-    public void Move(Vector3 movement)
+    public void Move(Vector3 movement, bool sprint = false)
     {
+        IsSprinting = sprint;
+
         if (movement == Vector3.zero)
         {
             movementVelocity.x = 0;
@@ -99,28 +107,13 @@ public class Character : MonoBehaviour
             return;
         }
 
-        // Handle movement differently depending on if the character is grounded and movetype.
-        if (CharacterController.isGrounded || inAirMovementType == MovementType.Direct)
-            HandleGroundMovement(movement * movementSpeed);
-        else
-            HandleAirMovement(movement * movementSpeed);
-    }
-
-    private void HandleGroundMovement(Vector3 movement)
-    {
-        // Set movement directly when on the ground.
+        movement *= sprint ? sprintSpeed : movementSpeed;
         movementVelocity.x = movement.x;
         movementVelocity.z = movement.z;
         lookDirection = movement;
 
         if (CharacterController.isGrounded)
             outsideForce = Vector3.zero;
-    }
-
-    private void HandleAirMovement(Vector3 movement)
-    {
-        movementVelocity.x = movementVelocity.x + movement.x * airMovementMultiplier * Time.deltaTime;
-        movementVelocity.z = movementVelocity.z + movement.z * airMovementMultiplier * Time.deltaTime;
     }
 
     public void SetLookDirection(Vector3 direction)
@@ -139,7 +132,7 @@ public class Character : MonoBehaviour
     /// </summary>
     private void Rotate()
     {
-        if (lookDirection.sqrMagnitude > 0)
+        if (lookDirection.magnitude > 0)
         {
             Quaternion toRotation = Quaternion.LookRotation(lookDirection);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, toRotation, rotationSpeed * Time.deltaTime);
@@ -193,7 +186,7 @@ public class Character : MonoBehaviour
         movementVelocity.y = Mathf.Clamp(movementVelocity.y, Gravity, float.MaxValue);
 
         // If the jump button is released start falling earlier.
-        if (hasJumped && releasedJump)
+        if (IsJumping && releasedJump)
             movementVelocity.y += Gravity * jumpReleasedFallSpeedMultiplier * Time.deltaTime;
 
         // Reduce outside force each frame.
@@ -223,8 +216,17 @@ public class Character : MonoBehaviour
         else if (CharacterController.isGrounded)
             lastHitNormal = hit.normal;
 
+        // Stop moving up if hit something above
+        bool collidedAbove = (CharacterController.collisionFlags & CollisionFlags.CollidedAbove) != 0;
+        if (collidedAbove)
+        {
+            movementVelocity.y = 0;
+            outsideForce.y = 0;
+        }
+
         // Track moving platform.
-        if (hit.gameObject.GetComponent<Rigidbody>())
+        bool collidedBelow = (CharacterController.collisionFlags & CollisionFlags.CollidedBelow) != 0;
+        if (collidedBelow && hit.gameObject.GetComponent<Rigidbody>())
         {
             currentPlatform = hit.transform;
             platformPosition = currentPlatform.position;
@@ -254,7 +256,7 @@ public class Character : MonoBehaviour
     {
         movementVelocity = velocity;
         outsideForce = Vector3.zero;
-        hasJumped = false;
+        IsJumping = false;
         releasedJump = true;
     }  
 
@@ -266,7 +268,7 @@ public class Character : MonoBehaviour
     {
         if (CharacterController.isGrounded)
         {
-            hasJumped = true;
+            IsJumping = true;
             movementVelocity.y = Mathf.Sqrt(jumpHeight * Gravity * -2f);
             OnJump?.Invoke();
         }
