@@ -31,7 +31,7 @@ public class Character : MonoBehaviour
 
     // Movement
     private Vector3 movementVelocity = Vector3.zero;
-    private Vector3 outsideForce = Vector3.zero;
+    private Vector3 externalForce = Vector3.zero;
     private Vector3 lookDirection = Vector3.zero;
 
     // Jumping
@@ -51,18 +51,8 @@ public class Character : MonoBehaviour
     const float SameDirectionDotThreshold = 0.5f;
 
     public CharacterController CharacterController { get; private set; }
-
     public bool IsJumping { get; private set; }
-
-    public bool IsMoving {
-        get 
-        {
-            Vector3 movement = movementVelocity;
-            movement.y = 0;
-            return movement.magnitude > 0;
-        }
-    }
-
+    public bool IsMoving => (movementVelocity.x * movementVelocity.x + movementVelocity.z * movementVelocity.z) > 0.0001f;
     public bool IsSprinting { get; private set; }
 
     private void Awake()
@@ -73,13 +63,13 @@ public class Character : MonoBehaviour
 
     private void Update()
     {
-        GetValues();
+        UpdateState();
         Rotate();
-        HandlePlatformMovement();
-        ApplyForces();
+        HandlePlatformMotion();
+        ApplyMotionAndForces();
     }
 
-    private void GetValues()
+    private void UpdateState()
     {
         if (CharacterController.isGrounded && movementVelocity.y < 0)
         {
@@ -93,27 +83,28 @@ public class Character : MonoBehaviour
         }
     }
 
-    public void Move(Vector3 movement, bool sprint = false)
+    public void Move(Vector3 input, bool sprint = false)
     {
         IsSprinting = sprint;
 
-        if (movement == Vector3.zero)
+        if (input == Vector3.zero)
         {
             movementVelocity.x = 0;
             movementVelocity.z = 0;
-
             if (CharacterController.isGrounded)
-                outsideForce = Vector3.zero;
+                externalForce = Vector3.zero;
             return;
         }
 
-        movement *= sprint ? sprintSpeed : movementSpeed;
+        float speed = sprint ? sprintSpeed : movementSpeed;
+        Vector3 movement = input * speed;
+
         movementVelocity.x = movement.x;
         movementVelocity.z = movement.z;
-        lookDirection = movement;
+        lookDirection = input;
 
         if (CharacterController.isGrounded)
-            outsideForce = Vector3.zero;
+            externalForce = Vector3.zero;
     }
 
     public void SetLookDirection(Vector3 direction)
@@ -134,12 +125,12 @@ public class Character : MonoBehaviour
     {
         if (lookDirection.magnitude > 0)
         {
-            Quaternion toRotation = Quaternion.LookRotation(lookDirection);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, toRotation, rotationSpeed * Time.deltaTime);
+            Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
     }
 
-    private void HandlePlatformMovement()
+    private void HandlePlatformMotion()
     {
         if (currentPlatform)
         {
@@ -161,25 +152,30 @@ public class Character : MonoBehaviour
             Vector3 totalDelta = newWorldPos - transform.position;
             CharacterController.Move(totalDelta);
 
-            // Update character rotation        
+            // Spin with platform rotation
             SetLookDirection(transform.rotation * platformRotationDelta * Vector3.forward);
         }
         else if (leftPlatform)
         {
             leftPlatform = false;
-
-            // Give boost
             Vector3 movement = movementVelocity;
             movement.y = 0;
+
+            // Give boost
             if (Vector3.Dot(movement.normalized, platformMovement.normalized) > SameDirectionDotThreshold)
                 AddForce(platformMovement / Time.deltaTime);
         }
     }
 
-    /// <summary>
-    /// Moves the character by the movement velocity.
-    /// </summary>
-    private void ApplyForces()
+    private void ApplyMotionAndForces()
+    {
+        ApplyGravity();
+        ReduceExternalForces();
+        HandleSlopeSliding();
+        PerformMove();
+    }
+
+    private void ApplyGravity()
     {
         // Apply gravity
         movementVelocity.y += Gravity * Time.deltaTime;
@@ -188,10 +184,16 @@ public class Character : MonoBehaviour
         // If the jump button is released start falling earlier.
         if (IsJumping && releasedJump)
             movementVelocity.y += Gravity * jumpReleasedFallSpeedMultiplier * Time.deltaTime;
+    }
 
+    private void ReduceExternalForces()
+    {
         // Reduce outside force each frame.
-        outsideForce = Vector3.MoveTowards(outsideForce, Vector3.zero, outsideForceReductionSpeed * Time.deltaTime);
+        externalForce = Vector3.MoveTowards(externalForce, Vector3.zero, outsideForceReductionSpeed * Time.deltaTime);
+    }
 
+    private void HandleSlopeSliding()
+    {
         // Make sure to slide off slopes to not get stuck.
         if ((CharacterController.collisionFlags & CollisionFlags.Below) != 0)
         {
@@ -199,13 +201,15 @@ public class Character : MonoBehaviour
             if (slopeAngle > CharacterController.slopeLimit)
             {
                 Vector3 direction = Vector3.ProjectOnPlane(Vector3.down, lastHitNormal).normalized;
-                Vector3 slide = direction * slideSpeed * Time.deltaTime;
-                CharacterController.Move(slide);
+                CharacterController.Move(direction * slideSpeed * Time.deltaTime);
             }
         }
+    }
 
+    private void PerformMove()
+    {
         // Perform movement
-        CharacterController.Move((movementVelocity + outsideForce) * Time.deltaTime);
+        CharacterController.Move((movementVelocity + externalForce) * Time.deltaTime);
     }
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
@@ -217,53 +221,39 @@ public class Character : MonoBehaviour
             lastHitNormal = hit.normal;
 
         // Stop moving up if hit something above
-        bool collidedAbove = (CharacterController.collisionFlags & CollisionFlags.CollidedAbove) != 0;
-        if (collidedAbove)
+        if ((CharacterController.collisionFlags & CollisionFlags.CollidedAbove) != 0)
         {
             movementVelocity.y = 0;
-            outsideForce.y = 0;
+            externalForce.y = 0;
         }
 
         // Track moving platform.
-        bool collidedBelow = (CharacterController.collisionFlags & CollisionFlags.CollidedBelow) != 0;
-        if (collidedBelow && hit.gameObject.GetComponent<Rigidbody>())
+        if (hit.gameObject.GetComponent<Rigidbody>() && hit.normal.y > 0.5f)
         {
             currentPlatform = hit.transform;
             platformPosition = currentPlatform.position;
             platformRotation = currentPlatform.rotation;
         }
         else
+        {
             currentPlatform = null;
+        }
     }
 
-    #region Public
-   
-
-    /// <summary>
-    /// Adds force from outside sources.
-    /// </summary>
     public void AddForce(Vector3 force)
     {
-        outsideForce += force;
-        outsideForce = Vector3.ClampMagnitude(outsideForce, outsideForceMaxMagnitude);
+        externalForce += force;
+        externalForce = Vector3.ClampMagnitude(externalForce, outsideForceMaxMagnitude);
     }
 
-    /// <summary>
-    /// Directly sets the velocity of the character, overwriting any old values.
-    /// Useful for bounce pads, hazard knockback etc.
-    /// </summary>
     public void SetVelocity(Vector3 velocity)
     {
         movementVelocity = velocity;
-        outsideForce = Vector3.zero;
+        externalForce = Vector3.zero;
         IsJumping = false;
         releasedJump = true;
     }  
 
-    /// <summary>
-    /// Checks if player is grounded and user pressed the jump button.
-    /// Handles forces to fall earlier if jump button is released.
-    /// </summary>
     public void Jump(Action releasedKey = null)
     {
         if (CharacterController.isGrounded)
@@ -274,9 +264,5 @@ public class Character : MonoBehaviour
         }
     }
 
-    public void ReleaseJump()
-    {
-        releasedJump = true;
-    }
-    #endregion
+    public void ReleaseJump() => releasedJump = true;
 }

@@ -1,9 +1,10 @@
 using UnityEngine;
 
-[RequireComponent(typeof(Character))]
 public class PlayerController : MonoBehaviour
 {
-    private Character character;
+    [SerializeField] Character character;
+    [SerializeField] CameraController cameraController;
+    
     private PlayerInputActions inputActions;
 
     Vector2 movementInput = Vector2.zero;
@@ -12,11 +13,9 @@ public class PlayerController : MonoBehaviour
     bool jumpTriggered = false;
     bool jumpInProgress = false;
 
-    private void Awake()
-    {
-        character = GetComponent<Character>();
-        inputActions = new PlayerInputActions();
-    }
+    Vector2 cameraLook;
+
+    private void Awake() =>  inputActions = new PlayerInputActions();
 
     private void OnEnable() => inputActions.Player.Enable();
 
@@ -33,15 +32,25 @@ public class PlayerController : MonoBehaviour
 
         if (!jumpInProgress)
             character.ReleaseJump();
+
+        cameraController.SetLookOffset(cameraLook);
     }
 
     private void GetInputs()
     {
+        // Character input
         movementInput = inputActions.Player.Move.ReadValue<Vector2>();
         movementDirection = GetCameraBasedDirection(movementInput);
         isSprinting = inputActions.Player.Sprint.inProgress;
         jumpTriggered = inputActions.Player.Jump.triggered;
         jumpInProgress = inputActions.Player.Jump.inProgress;
+
+        // Camera input
+        Vector2 lookInput = inputActions.Player.Look.ReadValue<Vector2>();
+        Vector2 screenSize = new Vector2(Screen.width, Screen.height);
+        cameraLook = (lookInput / screenSize) - Vector2.one * 0.5f;
+        if (cameraLook.x < -0.5f || cameraLook.x > 0.5f || cameraLook.y < -0.5f || cameraLook.y > 0.5f)
+            cameraLook = Vector2.zero;
     }
 
     /// <summary>

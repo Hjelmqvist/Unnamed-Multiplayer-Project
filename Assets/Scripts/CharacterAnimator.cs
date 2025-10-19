@@ -1,9 +1,9 @@
 using UnityEngine;
 
-[RequireComponent(typeof(Animator), typeof(Character))]
+[RequireComponent(typeof(Character))]
 public class CharacterAnimator : MonoBehaviour
 {
-    Animator animator;
+    [SerializeField] Animator animator;
     Character character;
     CharacterController controller;
 
@@ -11,7 +11,6 @@ public class CharacterAnimator : MonoBehaviour
 
     private void Start()
     {
-        animator = GetComponent<Animator>();
         character = GetComponent<Character>();
         controller = character.CharacterController;
     }
