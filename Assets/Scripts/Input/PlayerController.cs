@@ -47,10 +47,17 @@ public class PlayerController : MonoBehaviour
 
         // Camera input
         Vector2 lookInput = inputActions.Player.Look.ReadValue<Vector2>();
-        Vector2 screenSize = new Vector2(Screen.width, Screen.height);
-        cameraLook = (lookInput / screenSize) - Vector2.one * 0.5f;
-        if (cameraLook.x < -0.5f || cameraLook.x > 0.5f || cameraLook.y < -0.5f || cameraLook.y > 0.5f)
-            cameraLook = Vector2.zero;
+        if (lookInput == Vector2.zero)
+        {
+            cameraLook = Vector3.zero;
+        }
+        else
+        {
+            Vector2 screenSize = new Vector2(Screen.width, Screen.height);
+            cameraLook = (lookInput / screenSize) - Vector2.one * 0.5f;
+            if (cameraLook.x < -0.5f || cameraLook.x > 0.5f || cameraLook.y < -0.5f || cameraLook.y > 0.5f)
+                cameraLook = Vector2.zero;
+        }   
     }
 
     /// <summary>

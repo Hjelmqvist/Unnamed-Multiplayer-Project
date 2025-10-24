@@ -30,7 +30,7 @@ public class ModelMover : MonoBehaviour
     // Used for MoveType.BackAndForth
     bool goingBack = false;
 
-    private void Awake()
+    private void Start()
     {
         // Set starting values so we have something to go from.
         startPosition = transform.position;
@@ -95,6 +95,9 @@ public class ModelMover : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
+        if (movePoints.Length == 0)
+            return;
+
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireCube(startPosition, transform.localScale);
 
