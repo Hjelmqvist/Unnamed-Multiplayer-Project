@@ -1,9 +1,9 @@
 using UnityEngine;
 
- /// <summary>
- /// Component for the Main Camera to follow the player character.
- /// Can be locked on to a target with a set offset.
- /// </summary>
+/// <summary>
+/// Component for the Main Camera to follow the player character.
+/// Can be locked on to a target with a set offset.
+/// </summary>
 public class CameraController : MonoBehaviour
 {
     [SerializeField] Transform target;
@@ -15,8 +15,26 @@ public class CameraController : MonoBehaviour
 
     Vector2 lookOffset = Vector2.zero;
 
+    private void OnEnable()
+    {
+        Character.OnSpawned.AddListener(Character_OnSpawned);
+    }
+
+    private void OnDisable()
+    {
+        Character.OnSpawned.RemoveListener(Character_OnSpawned);
+    }
+
+    private void Character_OnSpawned(Character character)
+    {
+        target = character.transform;
+    }
+
     void LateUpdate()
     {
+        if (!target)
+            return;
+
         Vector3 targetPosition = target.position + targetOffset;  
         transform.position = Vector3.Lerp(transform.position, targetPosition, movementSpeed * Time.deltaTime);
 

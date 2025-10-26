@@ -1,6 +1,11 @@
+using System.Threading.Tasks;
 using TMPro;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
+using Unity.Services.Authentication;
+using Unity.Services.Core;
+using Unity.Services.Relay;
+using Unity.Services.Relay.Models;
 using UnityEngine;
 
 public class ConnectionPanel : MonoBehaviour
@@ -11,20 +16,45 @@ public class ConnectionPanel : MonoBehaviour
     [Header("UI elements"), Space()]
     [SerializeField] GameObject panel;
     [SerializeField] GameObject disconnectButton;
-    [SerializeField] TMP_InputField addressField;
+    [SerializeField] TMP_Text joinCodeText;
+    [SerializeField] TMP_InputField joinCodeInputField;
 
-    public void StartHost()
+    private async void Start()
     {
-        unityTransport.SetConnectionData("", 7777);
-        networkManager.StartHost();
-        UpdateUI(false);
+        await UnityServices.InitializeAsync();
+        await AuthenticationService.Instance.SignInAnonymouslyAsync();
     }
 
-    public void StartClient()
+    public async void StartHost()
     {
-        unityTransport.SetConnectionData(addressField.text, 7777);
-        if (networkManager.StartClient())
-            UpdateUI(false);
+        string joinCode = await StartHostWithRelay();
+        joinCodeText.text = joinCode;
+        UpdateUI(string.IsNullOrEmpty(joinCode));
+    }
+
+    private async Task<string> StartHostWithRelay(int maxConnections = 3)
+    {
+        Allocation allocation = await RelayService.Instance.CreateAllocationAsync(maxConnections);
+        unityTransport.SetRelayServerData(allocation.ToRelayServerData("dtls"));
+
+        string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+        return networkManager.StartHost() ? joinCode : null;
+    }
+
+    public async void StartClient()
+    {
+        bool started = await StartClientWithRelay(joinCodeInputField.text);
+        UpdateUI(!started);
+    }
+
+    private async Task<bool> StartClientWithRelay(string joinCode)
+    {
+        if (joinCode.Length == 0)
+            return false;
+
+        JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+        unityTransport.SetRelayServerData(joinAllocation.ToRelayServerData("dtls"));
+        return networkManager.StartClient();
     }
 
     public void Disconnect()

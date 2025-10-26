@@ -1,4 +1,5 @@
 using System;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -6,7 +7,7 @@ using UnityEngine.Events;
 /// Functionality for characters using a Character Controller.
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
-public class Character : MonoBehaviour
+public class Character : NetworkBehaviour
 {
     [Header("Movement settings")]
     [SerializeField] float movementSpeed = 1f;
@@ -27,7 +28,8 @@ public class Character : MonoBehaviour
     [SerializeField] float slideSpeed = 1f;
 
     [Header("Events")]
-    public UnityEvent OnJump;
+    public static UnityEvent<Character> OnSpawned = new UnityEvent<Character>();
+    public UnityEvent OnJump = new UnityEvent();
 
     // Movement
     private Vector3 movementVelocity = Vector3.zero;
@@ -58,11 +60,23 @@ public class Character : MonoBehaviour
     private void Awake()
     {
         CharacterController = GetComponent<CharacterController>();
-        lookDirection = transform.forward;
+        lookDirection = transform.forward;   
+    }
+
+    private void Start()
+    {
+        if (IsOwner)
+        {
+            OnSpawned?.Invoke(this);
+            Checkpoint.ReturnToCheckpoint(this);
+        }           
     }
 
     private void Update()
     {
+        if (!IsOwner || !IsSpawned)
+            return;
+
         UpdateState();
         Rotate();
         HandlePlatformMotion();

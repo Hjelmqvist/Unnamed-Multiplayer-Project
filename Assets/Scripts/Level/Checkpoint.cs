@@ -2,7 +2,14 @@ using UnityEngine;
 
 public class Checkpoint : MonoBehaviour
 {
+    [SerializeField] bool setDefault = false;
     static Transform currentCheckpoint = null;
+
+    private void Awake()
+    {
+        if (setDefault)
+            currentCheckpoint = transform;
+    }
 
     private void OnTriggerEnter(Collider other)
     {

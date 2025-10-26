@@ -4,7 +4,7 @@ public class PlayerController : MonoBehaviour
 {
     [SerializeField] Character character;
     [SerializeField] CameraController cameraController;
-    
+
     private PlayerInputActions inputActions;
 
     Vector2 movementInput = Vector2.zero;
@@ -15,25 +15,30 @@ public class PlayerController : MonoBehaviour
 
     Vector2 cameraLook;
 
-    private void Awake() =>  inputActions = new PlayerInputActions();
+    private void Awake() => inputActions = new PlayerInputActions();
 
-    private void OnEnable() => inputActions.Player.Enable();
+    private void OnEnable()
+    {
+        Character.OnSpawned.AddListener(Character_OnSpawned);
+        inputActions.Player.Enable();
+    }
 
-    private void OnDisable() => inputActions.Player.Disable();
+    private void OnDisable()
+    {
+        Character.OnSpawned.RemoveListener(Character_OnSpawned);
+        inputActions.Player.Disable();
+    }
+
+    private void Character_OnSpawned(Character character)
+    {
+        this.character = character;
+    }
 
     private void Update()
     {
         GetInputs();
-
-        character.Move(movementDirection, isSprinting);
-
-        if (jumpTriggered)
-            character.Jump();
-
-        if (!jumpInProgress)
-            character.ReleaseJump();
-
-        cameraController.SetLookOffset(cameraLook);
+        UpdateCharacter();
+        UpdateCamera();
     }
 
     private void GetInputs()
@@ -57,7 +62,7 @@ public class PlayerController : MonoBehaviour
             cameraLook = (lookInput / screenSize) - Vector2.one * 0.5f;
             if (cameraLook.x < -0.5f || cameraLook.x > 0.5f || cameraLook.y < -0.5f || cameraLook.y > 0.5f)
                 cameraLook = Vector2.zero;
-        }   
+        }
     }
 
     /// <summary>
@@ -77,5 +82,27 @@ public class PlayerController : MonoBehaviour
 
         Vector3 direction = right * inputDirection.x + forward * inputDirection.y;
         return direction.normalized;
+    }
+
+    private void UpdateCharacter()
+    {
+        if (!character)
+            return;
+
+        character.Move(movementDirection, isSprinting);
+
+        if (jumpTriggered)
+            character.Jump();
+
+        if (!jumpInProgress)
+            character.ReleaseJump();
+    }
+
+    private void UpdateCamera()
+    {
+        if (!cameraController)
+            return;
+
+        cameraController.SetLookOffset(cameraLook);
     }
 }
